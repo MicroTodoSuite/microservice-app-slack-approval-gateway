@@ -22,16 +22,18 @@ function baseDeps(overrides = {}) {
     merged,
     updated,
     ephemeral,
+    // @octokit/app instances only ever expose the low-level `.request()`
+    // method (no `.rest` namespace -- that needs a plugin @octokit/app does
+    // not bundle), so the fake mirrors exactly that surface.
     getInstallationOctokit: async () => ({
-      rest: {
-        pulls: {
-          async createReview(args) {
-            reviewed.push(args);
-          },
-          async merge(args) {
-            merged.push(args);
-          },
-        },
+      async request(route, args) {
+        if (route === "POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews") {
+          reviewed.push(args);
+        } else if (route === "PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge") {
+          merged.push(args);
+        } else {
+          throw new Error(`unexpected octokit route in test: ${route}`);
+        }
       },
     }),
     slackClient: {
