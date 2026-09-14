@@ -1,8 +1,8 @@
 {
   "_comment": "Maps a Slack user ID to the GitHub login it is allowed to act as when approving or rejecting the gitops PR gate. Not a secret: Slack user IDs are not sensitive, but the list itself is the entire authorization boundary for this service, so it is reviewed like any other access-control change. Find a Slack user ID via that person's profile > 'Copy member ID'. The three logins below are exactly the required_reviewers already configured on every service repo's 'prod' GitHub Environment (gh api repos/MicroTodoSuite/<repo>/environments), so this list does not grant anyone new authority -- it only lets an already-authorized reviewer act through Slack instead of the GitHub UI.",
   "approvers": [
-    { "slackUserId": "REPLACE_ME_U_JUANMADIAZ45", "githubLogin": "Juanmadiaz45" },
-    { "slackUserId": "REPLACE_ME_U_ESTEBANGZAM", "githubLogin": "EstebanGZam" },
-    { "slackUserId": "REPLACE_ME_U_TIAGO0507", "githubLogin": "Tiago0507" }
+    { "slackUserId": "U0BSAK1GQH0", "githubLogin": "Juanmadiaz45" },
+    { "slackUserId": "U0BS6P818MT", "githubLogin": "EstebanGZam" },
+    { "slackUserId": "U0A0D8AQ9TP", "githubLogin": "Tiago0507" }
   ]
 }
