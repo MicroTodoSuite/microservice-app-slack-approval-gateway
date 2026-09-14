@@ -39,8 +39,20 @@ export async function handleSlackInteractionEvent({ headers, rawBody, deps }) {
   const octokit = await deps.getInstallationOctokit(owner, name);
 
   if (action.action_id === "approve") {
-    await octokit.rest.pulls.createReview({ owner, repo: name, pull_number: prNumber, event: "APPROVE" });
-    await octokit.rest.pulls.merge({ owner, repo: name, pull_number: prNumber });
+    // @octokit/app only bundles @octokit/core + pagination -- there is no
+    // `.rest` namespace (that comes from a separate plugin it does not
+    // depend on) -- so every call goes through the low-level `.request()`.
+    await octokit.request("POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
+      owner,
+      repo: name,
+      pull_number: prNumber,
+      event: "APPROVE",
+    });
+    await octokit.request("PUT /repos/{owner}/{repo}/pulls/{pull_number}/merge", {
+      owner,
+      repo: name,
+      pull_number: prNumber,
+    });
     await deps.slackClient.updateMessage({
       channel: interaction.channel.id,
       ts: interaction.message.ts,
@@ -50,7 +62,7 @@ export async function handleSlackInteractionEvent({ headers, rawBody, deps }) {
   }
 
   if (action.action_id === "reject") {
-    await octokit.rest.pulls.createReview({
+    await octokit.request("POST /repos/{owner}/{repo}/pulls/{pull_number}/reviews", {
       owner,
       repo: name,
       pull_number: prNumber,
