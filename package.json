@@ -1,0 +1,24 @@
+{
+  "name": "slack-approval-gateway",
+  "version": "1.0.0",
+  "description": "MicroTodoSuite Slack approval gateway: notifies Slack for human-approval gates and lets the GitOps PR gate be approved from Slack.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "test": "node --test",
+    "build": "node scripts/build.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.125.0",
+    "@aws-sdk/client-secrets-manager": "3.1132.0",
+    "@octokit/app": "16.1.4",
+    "@slack/web-api": "8.1.1"
+  },
+  "devDependencies": {
+    "esbuild": "0.24.0"
+  }
+}
