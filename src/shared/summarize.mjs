@@ -1,4 +1,4 @@
-const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const DEFAULT_MODEL = "gemini-2.5-flash";
 
 const SYSTEM_PROMPT = [
   "You translate a software delivery approval into one short paragraph for a",
@@ -13,28 +13,24 @@ const SYSTEM_PROMPT = [
 // verbatim, already-validated PR/deployment text passed in as technicalText.
 // This keeps an LLM out of the business of deciding *what* changed -- it only
 // ever restates what a human (or a deterministic extractor) already said.
-export async function summarizeForNonTechnicalAudience({ technicalText, context, anthropicClient, model = DEFAULT_MODEL }) {
-  const response = await anthropicClient.messages.create({
+export async function summarizeForNonTechnicalAudience({ technicalText, context, geminiClient, model = DEFAULT_MODEL }) {
+  const response = await geminiClient.models.generateContent({
     model,
-    max_tokens: 300,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
-        role: "user",
-        content: [
-          `Service: ${context.service}`,
-          `Action awaiting approval: ${context.action}`,
-          "",
-          "Technical text (the only source of facts you may use):",
-          technicalText,
-        ].join("\n"),
-      },
-    ],
+    contents: [
+      `Service: ${context.service}`,
+      `Action awaiting approval: ${context.action}`,
+      "",
+      "Technical text (the only source of facts you may use):",
+      technicalText,
+    ].join("\n"),
+    config: {
+      systemInstruction: SYSTEM_PROMPT,
+      maxOutputTokens: 300,
+    },
   });
 
-  const textBlock = response.content.find((block) => block.type === "text");
-  if (!textBlock) {
-    throw new Error("Anthropic response contained no text content block");
+  if (!response.text) {
+    throw new Error("Gemini response contained no text");
   }
-  return textBlock.text;
+  return response.text;
 }
