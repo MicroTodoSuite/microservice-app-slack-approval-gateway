@@ -1,4 +1,4 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI } from "@google/genai";
 import { handleGithubWebhookEvent } from "./handle.mjs";
 import { extractWorkflowJobSummary } from "./extract-workflow-job-summary.mjs";
 import { verifyGithubSignature } from "../shared/verify-signatures.mjs";
@@ -12,10 +12,10 @@ let cachedDeps;
 async function buildDeps() {
   if (cachedDeps) return cachedDeps;
 
-  const [webhookSecret, slackBotToken, anthropicApiKey] = await Promise.all([
+  const [webhookSecret, slackBotToken, geminiApiKey] = await Promise.all([
     getSecret(process.env.GITHUB_WEBHOOK_SECRET_ARN),
     getSecret(process.env.SLACK_BOT_TOKEN_SECRET_ARN),
-    getSecret(process.env.ANTHROPIC_API_KEY_SECRET_ARN),
+    getSecret(process.env.GEMINI_API_KEY_SECRET_ARN),
   ]);
 
   cachedDeps = {
@@ -24,7 +24,7 @@ async function buildDeps() {
     extractTechnicalSummary,
     extractWorkflowJobSummary,
     summarize: summarizeForNonTechnicalAudience,
-    anthropicClient: new Anthropic({ apiKey: anthropicApiKey }),
+    geminiClient: new GoogleGenAI({ apiKey: geminiApiKey }),
     slackClient: createSlackClient({ botToken: slackBotToken, channel: process.env.SLACK_CHANNEL_ID }),
   };
   return cachedDeps;

@@ -18,7 +18,7 @@ async function handlePullRequestEvent(payload, deps) {
   const nonTechnicalText = await deps.summarize({
     technicalText,
     context: { service: GITOPS_REPO, action: "merge-to-production" },
-    anthropicClient: deps.anthropicClient,
+    geminiClient: deps.geminiClient,
   });
 
   const value = JSON.stringify({ repo: GITOPS_REPO, prNumber: payload.pull_request.number });
@@ -48,7 +48,7 @@ async function handleWorkflowJobEvent(payload, deps) {
   const nonTechnicalText = await deps.summarize({
     technicalText,
     context: { service: summary.service, action: "deploy-to-production" },
-    anthropicClient: deps.anthropicClient,
+    geminiClient: deps.geminiClient,
   });
 
   await deps.slackClient.postNotification({
