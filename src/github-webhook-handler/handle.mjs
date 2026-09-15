@@ -77,3 +77,40 @@ export async function handleGithubWebhookEvent({ headers, rawBody, deps }) {
   }
   return { statusCode: 200, body: "ignored" };
 }
+
+// Not a GitHub webhook: an infra repo's own CI posts here directly once it has
+// computed a real Infracost figure, signed with the same shared secret. This
+// avoids the Lambda ever needing to read GitHub's API or parse a rendered
+// Infracost PR comment -- the caller already has the exact numbers and the PR
+// body in hand from its own workflow context.
+export async function handleCostReportEvent({ headers, rawBody, deps }) {
+  const signatureHeader = header(headers, "x-hub-signature-256");
+  if (!deps.verifyGithubSignature({ payload: rawBody, signatureHeader, secret: deps.webhookSecret })) {
+    return { statusCode: 401, body: "invalid signature" };
+  }
+
+  const { repo, prNumber, prBody, costSummary } = JSON.parse(rawBody);
+
+  const technicalText = [
+    deps.extractTechnicalSummary(prBody, TECHNICAL_SECTIONS),
+    "## Estimated cost",
+    costSummary,
+  ].join("\n\n");
+  const nonTechnicalText = await deps.summarize({
+    technicalText,
+    context: { service: repo, action: "merge-infrastructure-change" },
+    geminiClient: deps.geminiClient,
+  });
+
+  const value = JSON.stringify({ repo, prNumber });
+  await deps.slackClient.postApprovalMessage({
+    title: `Approval needed: PR #${prNumber} into ${repo} (cost estimated)`,
+    technicalText,
+    nonTechnicalText,
+    actions: [
+      { actionId: "approve", label: "Approve", style: "primary", value },
+      { actionId: "reject", label: "Request changes", style: "danger", value },
+    ],
+  });
+  return { statusCode: 200, body: "posted" };
+}
