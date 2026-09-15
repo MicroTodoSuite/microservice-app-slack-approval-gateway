@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { handleGithubWebhookEvent } from "../src/github-webhook-handler/handle.mjs";
+import { handleGithubWebhookEvent, handleCostReportEvent } from "../src/github-webhook-handler/handle.mjs";
 
 function baseDeps(overrides = {}) {
   const posted = [];
@@ -145,4 +145,43 @@ test("ignores an event type it does not understand", async () => {
   });
   assert.equal(result.statusCode, 200);
   assert.equal(deps.slackClient.postedApprovals.length, 0);
+});
+
+test("handleCostReportEvent rejects the request when the signature does not verify", async () => {
+  const deps = baseDeps({ verifyGithubSignature: () => false });
+  const result = await handleCostReportEvent({
+    headers: headersWith("n/a"),
+    rawBody: JSON.stringify({ repo: "microservice-app-ops", prNumber: 1, prBody: "x", costSummary: "x" }),
+    deps,
+  });
+  assert.equal(result.statusCode, 401);
+  assert.equal(deps.slackClient.postedApprovals.length, 0);
+});
+
+test("handleCostReportEvent posts an approval message with the cost folded into the technical text", async () => {
+  const deps = baseDeps();
+  const payload = {
+    repo: "microservice-app-ops",
+    prNumber: 106,
+    prBody: "## What changes\nAdds a Lambda.",
+    costSummary: "Monthly cost estimate: +$4.32 (github-webhook-handler, slack-interaction-handler)",
+  };
+  const result = await handleCostReportEvent({
+    headers: headersWith("n/a"),
+    rawBody: JSON.stringify(payload),
+    deps,
+  });
+
+  assert.equal(result.statusCode, 200);
+  assert.equal(deps.slackClient.postedApprovals.length, 1);
+  const posted = deps.slackClient.postedApprovals[0];
+  assert.match(posted.technicalText, /TECHNICAL:/);
+  assert.match(posted.technicalText, /Monthly cost estimate: \+\$4\.32/);
+  assert.match(posted.title, /PR #106/);
+  assert.match(posted.title, /microservice-app-ops/);
+
+  const approveAction = posted.actions.find((a) => a.actionId === "approve");
+  const parsedValue = JSON.parse(approveAction.value);
+  assert.equal(parsedValue.repo, "microservice-app-ops");
+  assert.equal(parsedValue.prNumber, 106);
 });
