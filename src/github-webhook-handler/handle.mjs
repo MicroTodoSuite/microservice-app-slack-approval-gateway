@@ -18,7 +18,7 @@ async function handlePullRequestEvent(payload, deps) {
   const nonTechnicalText = await deps.summarize({
     technicalText,
     context: { service: GITOPS_REPO, action: "merge-to-production" },
-    geminiClient: deps.geminiClient,
+    llmClient: deps.llmClient,
   });
 
   const value = JSON.stringify({ repo: GITOPS_REPO, prNumber: payload.pull_request.number });
@@ -48,7 +48,7 @@ async function handleWorkflowJobEvent(payload, deps) {
   const nonTechnicalText = await deps.summarize({
     technicalText,
     context: { service: summary.service, action: "deploy-to-production" },
-    geminiClient: deps.geminiClient,
+    llmClient: deps.llmClient,
   });
 
   await deps.slackClient.postNotification({
@@ -99,7 +99,7 @@ export async function handleCostReportEvent({ headers, rawBody, deps }) {
   const nonTechnicalText = await deps.summarize({
     technicalText,
     context: { service: repo, action: "merge-infrastructure-change" },
-    geminiClient: deps.geminiClient,
+    llmClient: deps.llmClient,
   });
 
   const value = JSON.stringify({ repo, prNumber });
