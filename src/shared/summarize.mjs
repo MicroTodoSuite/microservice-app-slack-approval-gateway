@@ -1,4 +1,4 @@
-const DEFAULT_MODEL = "gemini-3.6-flash";
+const DEFAULT_MODEL = "llama-3.3-70b-versatile";
 
 const SYSTEM_PROMPT = [
   "You translate a software delivery approval into one short paragraph for a",
@@ -13,24 +13,28 @@ const SYSTEM_PROMPT = [
 // verbatim, already-validated PR/deployment text passed in as technicalText.
 // This keeps an LLM out of the business of deciding *what* changed -- it only
 // ever restates what a human (or a deterministic extractor) already said.
-export async function summarizeForNonTechnicalAudience({ technicalText, context, geminiClient, model = DEFAULT_MODEL }) {
-  const response = await geminiClient.models.generateContent({
+export async function summarizeForNonTechnicalAudience({ technicalText, context, llmClient, model = DEFAULT_MODEL }) {
+  const response = await llmClient.chat.completions.create({
     model,
-    contents: [
-      `Service: ${context.service}`,
-      `Action awaiting approval: ${context.action}`,
-      "",
-      "Technical text (the only source of facts you may use):",
-      technicalText,
-    ].join("\n"),
-    config: {
-      systemInstruction: SYSTEM_PROMPT,
-      maxOutputTokens: 300,
-    },
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          `Service: ${context.service}`,
+          `Action awaiting approval: ${context.action}`,
+          "",
+          "Technical text (the only source of facts you may use):",
+          technicalText,
+        ].join("\n"),
+      },
+    ],
+    max_tokens: 300,
   });
 
-  if (!response.text) {
-    throw new Error("Gemini response contained no text");
+  const text = response.choices?.[0]?.message?.content;
+  if (!text) {
+    throw new Error("Groq response contained no text");
   }
-  return response.text;
+  return text;
 }
