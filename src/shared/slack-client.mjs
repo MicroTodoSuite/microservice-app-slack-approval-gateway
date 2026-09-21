@@ -1,11 +1,26 @@
 import { WebClient } from "@slack/web-api";
 
-function summaryBlocks({ title, technicalText, nonTechnicalText }) {
+// A Slack section block's mrkdwn text object must stay under 3000 characters
+// (the API rejects the whole message otherwise, so this can't be an
+// afterthought). The Infracost cost tables this text carries can run long;
+// truncate rather than fail to post the approval entirely.
+const SLACK_TEXT_LIMIT = 3000;
+const TRUNCATION_NOTE = "\n... (truncated, see the pull request for the full detail)";
+
+function technicalDetailText(technicalText) {
+  const full = `*Technical detail:*\n\`\`\`${technicalText}\`\`\``;
+  if (full.length <= SLACK_TEXT_LIMIT) return full;
+
+  const budget = SLACK_TEXT_LIMIT - "*Technical detail:*\n```".length - "```".length - TRUNCATION_NOTE.length;
+  return `*Technical detail:*\n\`\`\`${technicalText.slice(0, budget)}${TRUNCATION_NOTE}\`\`\``;
+}
+
+export function summaryBlocks({ title, technicalText, nonTechnicalText }) {
   return [
     { type: "header", text: { type: "plain_text", text: title, emoji: true } },
     { type: "section", text: { type: "mrkdwn", text: `*For anyone on the team:*\n${nonTechnicalText}` } },
     { type: "divider" },
-    { type: "section", text: { type: "mrkdwn", text: `*Technical detail:*\n\`\`\`${technicalText}\`\`\`` } },
+    { type: "section", text: { type: "mrkdwn", text: technicalDetailText(technicalText) } },
   ];
 }
 
